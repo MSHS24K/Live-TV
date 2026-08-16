@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Live IPTV Dashboard</title>
+    <script src="https://cdn.jwplayer.com/libraries/SciNHiTD.js" type="text/javascript"></script>
+    
+    <style>
+        /* আপনার দেওয়া সার্চ বক্সের নির্দিষ্ট স্টাইল (আইডি ইউনিক করা হয়েছে) */
+        label { display: block; }
+        #iptvDashSearch {
+            width: 100%;
+            color: #0000ff;
+            box-sizing: border-box;
+            border: 1px solid blue;
+            border-radius: 4px;
+            padding: 10px; 
+            font-size: 14px;
+            background: #fff; 
+            outline: none;
+        }
+
+ 
+        
+        /* Modern Floating Search Box Container */
+        .iptv-dash-search-container {
+            position: sticky;
+            top: 0;
+            z-index: 0;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(12px);
+            padding: 0px 0;
+            margin-bottom: 0px;
+            border-bottom: 0px solid rgba(255,255,255,0.05);
+        }
+        
+        /* Scrollable Navigation Containers */
+        .iptv-dash-scroll-nav {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding: 4px 2px;
+            margin-bottom: 10px;
+            scrollbar-width: none; /* Hide for Firefox */
+            -webkit-overflow-scrolling: touch;
+        }
+        .iptv-dash-scroll-nav::-webkit-scrollbar { display: none; } /* Hide for Chrome/Safari */
+        
+        /* Primary Playlists Tab Button Style */
+        .iptv-dash-source-btn {
+            background: yellow;
+            border: 1px solid #334155;
+            color: #000;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px; 
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+        .iptv-dash-source-btn:hover { background: blue; color: #fff; }
+        .iptv-dash-source-btn.iptv-dash-active {
+            background: red;
+            color: #fff;
+            border-color: #3b82f6;
+           
+        }
+
+        /* Sub Category Navigation Chips Style */
+        .iptv-dash-sub-tab-btn { 
+            background: yellow; 
+            border: 1px solid rgba(255,255,255,0.05); 
+            padding: 5px 12px; 
+            border-radius: 20px; 
+            font-size: 11px; 
+            font-weight: 500; 
+            color: #000;
+            cursor: pointer; 
+            white-space: nowrap; 
+            transition: all 0.2s ease; 
+        }
+        .iptv-dash-sub-tab-btn:hover { background: blue; color: #fff; }
+        .iptv-dash-sub-tab-btn.iptv-dash-active { 
+            background: red; 
+            color: #fff; 
+            border-color: #000; 
+           
+        }
+
+        /* গ্রিড লেআউট: ফোনে ১টি ও পিসিতে ৫টি কলাম */
+        .iptv-dash-video-grid { 
+            display: grid; 
+            gap: 12px; 
+            grid-template-columns: repeat(1, minmax(0, 1fr)); 
+        }
+        @media (min-width: 640px) { .iptv-dash-video-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 900px) { .iptv-dash-video-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        @media (min-width: 1200px) { .iptv-dash-video-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        @media (min-width: 1500px) { .iptv-dash-video-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } } 
+        
+        .iptv-dash-video-card { 
+            background: #1e293b; 
+            border-radius: 10px; 
+            overflow: hidden; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+            display: flex; 
+            flex-direction: column; 
+            border: 1px solid rgba(255,255,255,0.02); 
+            transition: transform 0.2s ease, border-color 0.2s; 
+            position: relative; 
+        }
+        .iptv-dash-video-card:hover { 
+            transform: translateY(-3px); 
+            border-color: rgba(255,255,255,0.08);
+        }
+        
+        /* Thumbnail Framework */
+        .iptv-dash-player-container { width: 100%; position: relative; padding-top: 56.25%; background: #000; }
+        .iptv-dash-custom-poster { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            display: flex; justify-content: flex-start; align-items: flex-start; 
+            cursor: pointer; z-index: 2; 
+            background-color: #0b0f19; 
+        }
+        
+        /* Lazy Loading Image Style */
+        .iptv-dash-poster-img {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: contain; 
+            z-index: 1;
+            padding: 6px;
+        }
+        
+        /* লাল ব্যাকগ্রাউন্ড এবং সাদা লেখার ইউনিক স্টাইল */
+        .iptv-dash-poster-content { 
+            display: block;
+            background: #89F336; 
+            padding: 4px 10px; 
+            border-bottom-right-radius: 6px; 
+            z-index: 2;
+            max-width: 90%;
+        }
+        .iptv-dash-poster-title { 
+            font-size: 13px; 
+            font-weight: 700; 
+            color: black; 
+            line-height: 1.2; 
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .iptv-dash-player-container .jwplayer { position: absolute !important; top: 0; left: 0; width: 100% !important; height: 100% !important; }
+        #iptvDashStatusMsg { text-align: center; font-size: 14px; color: #94a3b8; margin: 30px 0; font-weight: 500; }
+        
+        /* Load More Button Container */
+        .iptv-dash-load-more-box { text-align: center; margin: 25px 0; }
+        .iptv-dash-load-more-btn {
+            background: #334155; color: #f8fafc; border: none;
+            padding: 10px 25px; font-size: 13px; font-weight: 600;
+            border-radius: 6px; cursor: pointer; transition: background 0.2s;
+        }
+        .iptv-dash-load-more-btn:hover { background: #475569; }
+    </style>
+</head>
+<body>
+
+<div class="iptv-dash-wrapper-main">
+    <div class="iptv-dash-search-container">
+        <label for="iptvDashSearch"></label>
+        <input type="text" id="iptvDashSearch" placeholder="Type text, numbers, or Bangla to search all networks...">
+    </div>
+    
+    <div class="iptv-dash-scroll-nav" id="iptvDashMainTabsBar">
+        <button id="iptv-tab-all" class="iptv-dash-source-btn iptv-dash-active" onclick="iptvDashSwitchSource('all', event)">Global All</button>
+        <button id="iptv-tab-categories" class="iptv-dash-source-btn" onclick="iptvDashSwitchSource('categories', event)">Categories</button>
+        <button id="iptv-tab-countries" class="iptv-dash-source-btn" onclick="iptvDashSwitchSource('countries', event)">Countries</button>
+        <button id="iptv-tab-languages" class="iptv-dash-source-btn" onclick="iptvDashSwitchSource('languages', event)">Languages</button>
+    </div>
+    
+    <div id="iptvDashSubTabsContainer" class="iptv-dash-scroll-nav"></div>
+    
+    <div id="iptvDashStatusMsg">Initializing System & Fetching Playlists...</div>
+    <div id="iptvDashVideoGrid" class="iptv-dash-video-grid"></div>
+    
+    <div class="iptv-dash-load-more-box">
+        <button id="iptvDashLoadMoreBtn" class="iptv-dash-load-more-btn" style="display: none;" onclick="iptvDashLoadMoreItems()">Load More Channels</button>
+    </div>
+</div>
+
+<script type="text/javascript">
+  // সব গ্লোবাল ভেরিয়েবল এবং ফাংশনকে ইউনিক নাম দেওয়া হয়েছে
+  const iptvDashEndpoints = {
+      categories: 'https://iptv-org.github.io/iptv/index.m3u',
+      countries: 'https://iptv-org.github.io/iptv/index.country.m3u',
+      languages: 'https://iptv-org.github.io/iptv/index.language.m3u'
+  };
+
+  const iptvDashGradients = [
+    "linear-gradient(135deg, #1e1b4b 0%, #311042 100%)",
+    "linear-gradient(135deg, #06283d 0%, #1363df 100%)",
+    "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+    "linear-gradient(135deg, #1c1917 0%, #44403c 100%)"
+  ];
+
+  let iptvDashMasterDB = [];      
+  let iptvDashDisplayList = [];         
+  let iptvDashActiveSource = 'all';     
+  let iptvDashActiveSubCat = 'ALL';
+  let iptvDashItemsRendered = 0;
+  const iptvDashItemsPerPage = 80;      
+  
+  let iptvDashCurrentPlayingIndex = null; 
+  let iptvDashWakeLock = null;
+
+  async function iptvDashRequestWakeLock() {
+    try { if ('wakeLock' in navigator) iptvDashWakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
+  }
+  function iptvDashReleaseWakeLock() {
+    if (iptvDashWakeLock !== null) { iptvDashWakeLock.release(); iptvDashWakeLock = null; }
+  }
+
+  document.getElementById('iptvDashMainTabsBar').addEventListener('click', function(e) {
+      e.stopPropagation();
+  });
+  document.getElementById('iptvDashSubTabsContainer').addEventListener('click', function(e) {
+      e.stopPropagation();
+  });
+
+  async function iptvDashBootSystem() {
+      try {
+          const keys = Object.keys(iptvDashEndpoints);
+          const promises = keys.map(key => fetch(iptvDashEndpoints[key]).then(r => r.text()).then(text => iptvDashParseM3U(text, key)));
+          await Promise.all(promises);
+          document.getElementById('iptvDashStatusMsg').style.display = 'none';
+          iptvDashUpdateTabCounts(); 
+          iptvDashGenerateSubChips();
+          iptvDashApplyFilterEngine();
+      } catch (err) {
+          document.getElementById('iptvDashStatusMsg').innerHTML = "<span style='color:#f43f5e;'>Error loading playlists. Please refresh.</span>";
+          console.error(err);
+      }
+  }
+
+  function iptvDashParseM3U(rawText, sourceOrigin) {
+      const lines = rawText.split('\n');
+      let currentLogo = "";
+      let currentGroup = "General";
+      let currentTitle = "";
+      let internalId = iptvDashMasterDB.length + 1;
+
+      for (let i = 0; i < lines.length; i++) {
+          let line = lines[i].trim();
+          
+          if (line.startsWith('#EXTINF:')) {
+              let logoMatch = line.match(/tvg-logo="([^"]+)"/);
+              currentLogo = logoMatch ? logoMatch[1] : "";
+              
+              let groupMatch = line.match(/group-title="([^"]+)"/);
+              currentGroup = groupMatch ? groupMatch[1] : "General";
+              if(!currentGroup.trim()) currentGroup = "General";
+              
+              let commaIdx = line.lastIndexOf(',');
+              currentTitle = commaIdx !== -1 ? line.substring(commaIdx + 1).trim() : "";
+          } 
+          else if (line.startsWith('http://') || line.startsWith('https://')) {
+              if (!currentTitle) currentTitle = "Live Stream " + internalId;
+              
+              iptvDashMasterDB.push({
+                  id: internalId++,
+                  title: currentTitle,
+                  file: line,
+                  logo: currentLogo,
+                  group: currentGroup,
+                  source: sourceOrigin
+              });
+              currentLogo = ""; currentGroup = "General"; currentTitle = "";
+          }
+      }
+  }
+
+  function iptvDashUpdateTabCounts(searchQuery = "") {
+      let db = iptvDashMasterDB;
+      if (searchQuery !== "") {
+          db = iptvDashMasterDB.filter(ch => ch.title.toLowerCase().includes(searchQuery));
+      }
+
+      const allCount = db.length;
+      const catCount = db.filter(c => c.source === 'categories').length;
+      const counCount = db.filter(c => c.source === 'countries').length;
+      const langCount = db.filter(c => c.source === 'languages').length;
+
+      document.getElementById('iptv-tab-all').textContent = `Global All (${allCount})`;
+      document.getElementById('iptv-tab-categories').textContent = `Categories (${catCount})`;
+      document.getElementById('iptv-tab-countries').textContent = `Countries (${counCount})`;
+      document.getElementById('iptv-tab-languages').textContent = `Languages (${langCount})`;
+  }
+
+  function iptvDashSwitchSource(sourceKey, event) {
+      if(event) {
+          event.preventDefault();
+          event.stopPropagation();
+      }
+      document.querySelectorAll('.iptv-dash-source-btn').forEach(btn => btn.classList.remove('iptv-dash-active'));
+      if(event && event.target) event.target.classList.add('iptv-dash-active');
+      
+      iptvDashActiveSource = sourceKey;
+      iptvDashActiveSubCat = 'ALL'; 
+      iptvDashGenerateSubChips();
+      iptvDashApplyFilterEngine();
+  }
+
+  function iptvDashGenerateSubChips() {
+      const container = document.getElementById('iptvDashSubTabsContainer');
+      container.innerHTML = '';
+      
+      const searchInput = document.getElementById('iptvDashSearch');
+      const query = searchInput.value.toLowerCase().trim();
+      
+      let relevantChannels = iptvDashActiveSource === 'all' ? iptvDashMasterDB : iptvDashMasterDB.filter(c => c.source === iptvDashActiveSource);
+      if (query !== "") {
+          relevantChannels = relevantChannels.filter(ch => ch.title.toLowerCase().includes(query));
+      }
+
+      let groupCounts = {};
+      let totalRelevantCount = relevantChannels.length;
+
+      relevantChannels.forEach(c => {
+          groupCounts[c.group] = (groupCounts[c.group] || 0) + 1;
+      });
+      
+      let subSet = new Set(['ALL', ...Object.keys(groupCounts)]);
+      
+      subSet.forEach(subName => {
+          let count = subName === 'ALL' ? totalRelevantCount : (groupCounts[subName] || 0);
+          if(count === 0 && subName !== 'ALL') return;
+
+          let chip = document.createElement('button');
+          chip.className = 'iptv-dash-sub-tab-btn' + (subName === iptvDashActiveSubCat ? ' iptv-dash-active' : '');
+          chip.textContent = `${subName} (${count})`; 
+          
+          chip.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation(); 
+              document.querySelectorAll('.iptv-dash-sub-tab-btn').forEach(b => b.classList.remove('iptv-dash-active'));
+              chip.classList.add('iptv-dash-active');
+              iptvDashActiveSubCat = subName;
+              iptvDashApplyFilterEngine(false); 
+          });
+          container.appendChild(chip);
+      });
+  }
+
+  function iptvDashApplyFilterEngine(resetSearch = false) {
+      const searchInput = document.getElementById('iptvDashSearch');
+      if(resetSearch) searchInput.value = '';
+      const query = searchInput.value.toLowerCase().trim();
+      
+      if (query !== "") {
+          iptvDashDisplayList = iptvDashMasterDB.filter(ch => ch.title.toLowerCase().includes(query));
+      } else {
+          iptvDashDisplayList = iptvDashMasterDB.filter(ch => {
+              let matchMainSource = (iptvDashActiveSource === 'all' || ch.source === iptvDashActiveSource);
+              let matchSubGroup = (iptvDashActiveSubCat === 'ALL' || ch.group === iptvDashActiveSubCat);
+              return matchMainSource && matchSubGroup;
+          });
+      }
+      
+      iptvDashItemsRendered = 0;
+      document.getElementById('iptvDashVideoGrid').innerHTML = '';
+      iptvDashRenderGridChunk();
+  }
+
+  function iptvDashRenderGridChunk() {
+      const videoGrid = document.getElementById('iptvDashVideoGrid');
+      const loadMoreBtn = document.getElementById('iptvDashLoadMoreBtn');
+      
+      if(iptvDashDisplayList.length === 0 && iptvDashItemsRendered === 0){
+          videoGrid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#64748b; padding:60px 0; font-size:13px;">No channels found.</div>';
+          loadMoreBtn.style.display = 'none';
+          return;
+      }
+      
+      const nextChunk = iptvDashDisplayList.slice(iptvDashItemsRendered, iptvDashItemsRendered + iptvDashItemsPerPage);
+      
+      nextChunk.forEach((vid) => {
+          let card = document.createElement('div');
+          card.className = 'iptv-dash-video-card';
+          
+          let playerWrapper = document.createElement('div');
+          playerWrapper.className = 'iptv-dash-player-container';
+          
+          let playerTargetId = "iptv-jw-target-" + vid.id;
+          let innerTarget = document.createElement('div');
+          innerTarget.id = playerTargetId;
+          playerWrapper.appendChild(innerTarget);
+
+          let posterOverlay = document.createElement('div');
+          posterOverlay.className = 'iptv-dash-custom-poster';
+          posterOverlay.id = "iptv-poster-" + vid.id;
+          
+          if (vid.logo && vid.logo.trim() !== "") {
+              let img = document.createElement('img');
+              img.className = 'iptv-dash-poster-img';
+              img.src = vid.logo;
+              img.alt = vid.title;
+              img.setAttribute('loading', 'lazy'); 
+              
+              img.onerror = function() {
+                  this.style.display = 'none';
+                  posterOverlay.style.background = iptvDashGradients[vid.id % iptvDashGradients.length];
+              };
+              posterOverlay.appendChild(img);
+          } else {
+              posterOverlay.style.background = iptvDashGradients[vid.id % iptvDashGradients.length];
+          }
+          
+          let contentContainer = document.createElement('div');
+          contentContainer.className = 'iptv-dash-poster-content';
+
+          let pTitle = document.createElement('div');
+          pTitle.className = 'iptv-dash-poster-title';
+          pTitle.textContent = vid.title;
+          
+          contentContainer.appendChild(pTitle);
+          posterOverlay.appendChild(contentContainer);
+          playerWrapper.appendChild(posterOverlay);
+          card.appendChild(playerWrapper);
+          videoGrid.appendChild(card);
+
+          posterOverlay.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation(); 
+
+              if (iptvDashCurrentPlayingIndex !== null && iptvDashCurrentPlayingIndex !== vid.id) {
+                  try { jwplayer("iptv-jw-target-" + iptvDashCurrentPlayingIndex).remove(); } catch(e) {}
+                  let oldPoster = document.getElementById("iptv-poster-" + iptvDashCurrentPlayingIndex);
+                  if (oldPoster) oldPoster.style.display = 'flex';
+              }
+
+              iptvDashCurrentPlayingIndex = vid.id;
+              posterOverlay.style.display = 'none';
+
+              let fileUrl = vid.file;
+              let fileType = fileUrl.toLowerCase().includes(".m3u8") ? "hls" : "mp4";
+
+              let playerInstance = jwplayer(playerTargetId).setup({
+                  'playlist': [{ 'file': fileUrl, 'type': fileType }],
+                  'width': '100%',
+                  'aspectratio': '16:9',
+                  'autostart': true,
+                  'controls': true 
+              });
+
+              playerInstance.on('play', function() { iptvDashRequestWakeLock(); });
+              playerInstance.on('pause', function() { iptvDashReleaseWakeLock(); });
+              playerInstance.on('complete', function() { iptvDashReleaseWakeLock(); });
+
+              if ('mediaSession' in navigator) {
+                  navigator.mediaSession.metadata = new MediaMetadata({
+                      title: vid.title,
+                      artist: 'Global Live Stream',
+                      album: vid.group
+                  });
+                  navigator.mediaSession.setActionHandler('play', function() { playerInstance.play(); });
+                  navigator.mediaSession.setActionHandler('pause', function() { playerInstance.pause(); });
+              }
+          });
+      });
+      
+      iptvDashItemsRendered += nextChunk.length;
+      loadMoreBtn.style.display = iptvDashItemsRendered < iptvDashDisplayList.length ? 'inline-block' : 'none';
+  }
+
+  function iptvDashLoadMoreItems() {
+      iptvDashRenderGridChunk();
+  }
+
+  // রিঅ্যাক্টিভ লাইভ সার্চবক্স লিসেনার
+  document.getElementById('iptvDashSearch').addEventListener('input', () => {
+      const q = document.getElementById('iptvDashSearch').value.trim();
+      if(q !== "") {
+          document.querySelectorAll('.iptv-dash-source-btn').forEach(btn => btn.classList.remove('iptv-dash-active'));
+          const allBtn = document.querySelector(".iptv-dash-source-btn");
+          if(allBtn) allBtn.classList.add('iptv-dash-active');
+          iptvDashActiveSource = 'all';
+          iptvDashActiveSubCat = 'ALL';
+      }
+      iptvDashUpdateTabCounts(q.toLowerCase()); 
+      iptvDashGenerateSubChips(); 
+      iptvDashApplyFilterEngine(false);
+  });
+
+  document.addEventListener('visibilitychange', async () => {
+      if (iptvDashWakeLock !== null && document.visibilityState === 'visible') await iptvDashRequestWakeLock();
+  });
+
+  iptvDashBootSystem();
+</script>
+
+</body>
+</html>
